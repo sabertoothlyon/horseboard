@@ -21,6 +21,7 @@ h1{margin:0;font-size:5.5vh;font-weight:600;letter-spacing:.01em}
 .heat .num{font-size:8vh;font-weight:700;line-height:1.05;color:var(--hc,var(--hn))}
 .heat .st{font-size:2.8vh;font-weight:600}
 .heat .dt{font-size:1.9vh;color:var(--mute)}
+.heat .cp{display:flex;gap:1.2vw;justify-content:flex-end;margin-top:.6vh;font-size:1.9vh;color:var(--mute)}.heat .cp b{font-weight:700}
 .cols{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:1.2vw;flex:1;min-height:0}
 .col{display:flex;flex-direction:column;min-height:0;background:var(--card);border:1px solid var(--line);border-top:.5vh solid var(--cc);border-radius:14px;padding:1.4vh 1.2vw}
 .col h2{margin:0 0 1.2vh;display:flex;justify-content:space-between;align-items:baseline;font-size:3.4vh;font-weight:600;color:var(--cc)}
@@ -57,14 +58,19 @@ footer{display:flex;justify-content:space-between;align-items:center;color:var(-
 // PASTE your Google Sheet "Publish to web" CSV link between the quotes:
 var CSV_URL="https://docs.google.com/spreadsheets/d/1_X_VX9J7TBwBCJ5LevxgVY7_BgvznSg59j_4pLXBZMs/gviz/tq?tqx=out:csv&sheet=Horses&headers=0";
 var EVERY=30000; // refresh every 30 seconds
-var st={horses:[],temp:null,hum:null,at:null};
+var st={horses:[],sT:null,sH:null,wT:null,wH:null,wAt:null,cp:[],at:null};
+var WX="https://api.open-meteo.com/v1/forecast?latitude=21.52199&longitude=-157.8353&current=temperature_2m,relative_humidity_2m&hourly=temperature_2m,relative_humidity_2m&temperature_unit=fahrenheit&timezone=Pacific%2FHonolulu&forecast_days=1";
 var $=function(i){return document.getElementById(i)};
 var COLS=[["trail","On Trail Rides","var(--trail)"],["guide","Guide Horses","var(--guide)"],["off","Day Off","var(--off)"]];
 function level(v){
-  if(v<155)return["Normal","var(--h0)"];
-  if(v<165)return["Monitor","var(--h1)"];
-  if(v<175)return["Caution: lighter workloads","var(--h2)"];
-  return["High: limit work","var(--h3)"];
+  if(v<155)return["LOW","var(--h0)"];
+  if(v<=165)return["MODERATE","var(--h1)"];
+  if(v<=175)return["HIGH","var(--h2)"];
+  return["EXTREME","var(--h3)"];
+}
+function cps(live){
+  if(!live||!st.cp.length)return"";
+  return'<div class="cp">'+st.cp.map(function(x){return'<span>'+x.l+' <b style="color:'+level(x.v)[1]+'">'+x.v+'</b></span>'}).join("")+'</div>';
 }
 function parse(t){
   var rows=[],r=[],c="",q=false,i,ch;
@@ -80,11 +86,11 @@ function parse(t){
 }
 function num(v){var n=parseFloat(v);return isNaN(n)?null:n}
 function load(rows){
-  var hs=[];st.temp=null;st.hum=null;
+  var hs=[];st.sT=null;st.sH=null;
   rows.forEach(function(r){
     var k=(r[3]||"").trim().toLowerCase();
-    if(k=="temperature")st.temp=num(r[4]);
-    if(k=="humidity")st.hum=num(r[4]);
+    if(k=="temperature")st.sT=num(r[4]);
+    if(k=="humidity")st.sH=num(r[4]);
     var n=(r[0]||"").trim();
     if(!n||n.toLowerCase()=="horse")return;
     var x=(r[1]||"").trim().toLowerCase();
@@ -93,10 +99,10 @@ function load(rows){
   st.horses=hs;st.at=Date.now();
 }
 function render(){
-  var hz=$("heat"),t=st.temp,h=st.hum;
+  var hz=$("heat"),live=st.wAt&&Date.now()-st.wAt<2700000,t=live?st.wT:st.sT,h=live?st.wH:st.sH;
   if(t==null||h==null){hz.style.setProperty("--hc","var(--hn)");hz.innerHTML='<div class="lb">Equine Heat Index</div><div class="num">&ndash;</div><div class="st">Not set</div>';}
-  else{var v=t+h,l=level(v);hz.style.setProperty("--hc",l[1]);
-    hz.innerHTML='<div class="lb">Equine Heat Index</div><div class="num">'+v+'</div><div class="st">'+l[0]+'</div><div class="dt">'+t+'°F + '+h+'% humidity</div>';}
+  else{var v=Math.round(t+h),l=level(v);hz.style.setProperty("--hc",l[1]);
+    hz.innerHTML='<div class="lb">Equine Heat Index</div><div class="num">'+v+'</div><div class="st">'+l[0]+'</div><div class="dt">'+Math.round(t)+'°F + '+Math.round(h)+'% humidity'+(live?'':' (sheet)')+'</div>'+cps(live);}
   $("sub").textContent=(st.horses.length?st.horses.length+" horses · ":"")+new Date().toLocaleDateString([], {weekday:"long",month:"long",day:"numeric"});
   var c=$("cols");c.innerHTML="";
   COLS.forEach(function(k){
@@ -121,6 +127,14 @@ function fit(){
     if(!over)break;fs-=0.2;
   }
 }
+function wx(){
+  fetch(WX).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
+    st.wT=d.current.temperature_2m;st.wH=d.current.relative_humidity_2m;st.wAt=Date.now();
+    st.cp=[[7,"7 AM"],[13,"1 PM"],[18,"6 PM"]].map(function(p){
+      return{l:p[1],v:Math.round(d.hourly.temperature_2m[p[0]]+d.hourly.relative_humidity_2m[p[0]])}});
+    render();
+  }).catch(function(){render()});
+}
 function pull(){
   if(!CSV_URL){$("msg").textContent="Add the Google Sheet link to CSV_URL in the file.";return}
   fetch(CSV_URL+(CSV_URL.indexOf("?")>-1?"&":"?")+"t="+Date.now())
@@ -129,7 +143,7 @@ function pull(){
     .catch(function(){$("msg").textContent="Connection lost. Showing last update."});
 }
 window.addEventListener("resize",fit);
-render();pull();setInterval(pull,EVERY);setInterval(render,60000);
+render();wx();pull();setInterval(wx,900000);setInterval(pull,EVERY);setInterval(render,60000);
 })();
 </script>
 </body>
