@@ -61,9 +61,9 @@ var st={horses:[],temp:null,hum:null,at:null};
 var $=function(i){return document.getElementById(i)};
 var COLS=[["trail","On Trail Rides","var(--trail)"],["guide","Guide Horses","var(--guide)"],["off","Day Off","var(--off)"]];
 function level(v){
-  if(v<120)return["Normal","var(--h0)"];
-  if(v<150)return["Monitor","var(--h1)"];
-  if(v<180)return["Caution: lighter workloads","var(--h2)"];
+  if(v<155)return["Normal","var(--h0)"];
+  if(v<165)return["Monitor","var(--h1)"];
+  if(v<175)return["Caution: lighter workloads","var(--h2)"];
   return["High: limit work","var(--h3)"];
 }
 function parse(t){
