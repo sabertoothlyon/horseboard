@@ -121,7 +121,7 @@ function fit(){
   }
 }
 function pull(){
-  if(!CSV_URL){$("msg").textContent="Add the Google Sheet link to CSV_URL in the file.";return}
+  if(!CSV_URL){$("msg").textContent="https://github.com/sabertoothlyon/horseboard/blob/main/horse-sheet-template.csv";return}
   fetch(CSV_URL+(CSV_URL.indexOf("?")>-1?"&":"?")+"t="+Date.now())
     .then(function(r){if(!r.ok)throw 0;return r.text()})
     .then(function(t){load(parse(t));$("msg").textContent="";render()})
