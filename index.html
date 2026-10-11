@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Horse Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f6f2ea;--card:#fffdf8;--ink:#2b2a26;--mute:#7a7467;--line:#e4ddcf;--trail:#4f7a5a;--guide:#9a7b3f;--off:#6b7f8f;
 --h0:#4f7a5a;--h1:#8f8a3e;--h2:#c08a3a;--h3:#b0623f;--hn:#8a8578;
@@ -11,9 +13,11 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1d1b;--card:#252622;--ink:#ece8dd;--mute:#9b968a;--line:#3a3b36;--trail:#7fb08a;--guide:#d2b06a;--off:#8fa6b6;--h0:#7fb08a;--h1:#c2bd6a;--h2:#e0b061;--h3:#d98a66;--hn:#9b968a}}
 :root[data-theme="dark"]{--bg:#1c1d1b;--card:#252622;--ink:#ece8dd;--mute:#9b968a;--line:#3a3b36;--trail:#7fb08a;--guide:#d2b06a;--off:#8fa6b6;--h0:#7fb08a;--h1:#c2bd6a;--h2:#e0b061;--h3:#d98a66;--hn:#9b968a}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,Helvetica,Arial,sans-serif}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:"Nunito","Varela Round","Trebuchet MS","Segoe UI",system-ui,-apple-system,Helvetica,Arial,sans-serif}
 #app{display:flex;flex-direction:column;height:100vh;padding:2.5vh 2vw 1.5vh;gap:2vh;overflow:hidden}
-header{display:flex;justify-content:space-between;align-items:flex-start;gap:2vw}
+header{display:flex;justify-content:space-between;align-items:center;gap:2vw}
+.clock{flex:1;text-align:center;font-size:11vh;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.clock small{font-size:.38em;font-weight:700;color:var(--mute);margin-left:.15em}
 h1{margin:0;font-size:5.5vh;font-weight:600;letter-spacing:.01em}
 #sub{margin:.3em 0 0;color:var(--mute);font-size:2.6vh}
 .heat{background:var(--card);border:1px solid var(--line);border-left:.5vw solid var(--hc,var(--hn));border-radius:14px;padding:1vh 1.6vw;text-align:right;min-width:16vw}
@@ -21,13 +25,12 @@ h1{margin:0;font-size:5.5vh;font-weight:600;letter-spacing:.01em}
 .heat .num{font-size:8vh;font-weight:700;line-height:1.05;color:var(--hc,var(--hn))}
 .heat .st{font-size:2.8vh;font-weight:600}
 .heat .dt{font-size:1.9vh;color:var(--mute)}
-.heat .cp{display:flex;gap:1.2vw;justify-content:flex-end;margin-top:.6vh;font-size:1.9vh;color:var(--mute)}.heat .cp b{font-weight:700}
 .cols{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:1.2vw;flex:1;min-height:0}
 .col{display:flex;flex-direction:column;min-height:0;background:var(--card);border:1px solid var(--line);border-top:.5vh solid var(--cc);border-radius:14px;padding:1.4vh 1.2vw}
 .col h2{margin:0 0 1.2vh;display:flex;justify-content:space-between;align-items:baseline;font-size:3.4vh;font-weight:600;color:var(--cc)}
 .col h2 b{font-size:5vh}
-.names{display:grid;grid-template-columns:repeat(auto-fill,minmax(8em,1fr));grid-auto-rows:min-content;gap:.3vh .8vw;font-size:var(--fs,2.6vh);flex:1;min-height:0;overflow:hidden}
-.n{padding:.25em .1em;border:0;background:none;color:inherit;font:inherit;text-align:left;border-bottom:1px dashed var(--line)}
+.names{display:grid;grid-template-columns:repeat(auto-fill,minmax(7.5em,1fr));grid-auto-rows:min-content;gap:.7vh .7vw;font-size:var(--fs,3vh);flex:1;min-height:0;overflow:hidden;align-content:start}
+.n{display:block;padding:.18em .5em;border-radius:999px;text-align:center;line-height:1.15;font-weight:700;color:var(--ink);background:var(--card);background:color-mix(in srgb,var(--cc) 16%,var(--card));border:1px solid color-mix(in srgb,var(--cc) 35%,transparent)}
 button.n{cursor:pointer;border-radius:6px;padding:.25em .4em;border:1px solid var(--line);background:var(--bg)}
 button.n:hover{border-color:var(--cc)}
 .empty{color:var(--mute);font-style:italic}
@@ -48,6 +51,7 @@ footer{display:flex;justify-content:space-between;align-items:center;color:var(-
 <div id="app">
   <header>
     <div><h1>Horse Board</h1><p id="sub"></p></div>
+    <div class="clock" id="clock"></div>
     <div class="heat" id="heat"></div>
   </header>
   <section class="cols" id="cols"></section>
@@ -58,19 +62,14 @@ footer{display:flex;justify-content:space-between;align-items:center;color:var(-
 // PASTE your Google Sheet "Publish to web" CSV link between the quotes:
 var CSV_URL="https://docs.google.com/spreadsheets/d/1_X_VX9J7TBwBCJ5LevxgVY7_BgvznSg59j_4pLXBZMs/gviz/tq?tqx=out:csv&sheet=Horses&headers=0";
 var EVERY=30000; // refresh every 30 seconds
-var st={horses:[],sT:null,sH:null,wT:null,wH:null,wAt:null,cp:[],at:null};
-var WX="https://api.open-meteo.com/v1/forecast?latitude=21.52199&longitude=-157.8353&current=temperature_2m,relative_humidity_2m&hourly=temperature_2m,relative_humidity_2m&temperature_unit=fahrenheit&timezone=Pacific%2FHonolulu&forecast_days=1";
+var st={horses:[],temp:null,hum:null,at:null};
 var $=function(i){return document.getElementById(i)};
 var COLS=[["trail","On Trail Rides","var(--trail)"],["guide","Guide Horses","var(--guide)"],["off","Day Off","var(--off)"]];
 function level(v){
-  if(v<155)return["LOW","var(--h0)"];
-  if(v<=165)return["MODERATE","var(--h1)"];
-  if(v<=175)return["HIGH","var(--h2)"];
-  return["EXTREME","var(--h3)"];
-}
-function cps(live){
-  if(!live||!st.cp.length)return"";
-  return'<div class="cp">'+st.cp.map(function(x){return'<span>'+x.l+' <b style="color:'+level(x.v)[1]+'">'+x.v+'</b></span>'}).join("")+'</div>';
+  if(v<120)return["Normal","var(--h0)"];
+  if(v<150)return["Monitor","var(--h1)"];
+  if(v<180)return["Caution: lighter workloads","var(--h2)"];
+  return["High: limit work","var(--h3)"];
 }
 function parse(t){
   var rows=[],r=[],c="",q=false,i,ch;
@@ -86,11 +85,11 @@ function parse(t){
 }
 function num(v){var n=parseFloat(v);return isNaN(n)?null:n}
 function load(rows){
-  var hs=[];st.sT=null;st.sH=null;
+  var hs=[];st.temp=null;st.hum=null;
   rows.forEach(function(r){
     var k=(r[3]||"").trim().toLowerCase();
-    if(k=="temperature")st.sT=num(r[4]);
-    if(k=="humidity")st.sH=num(r[4]);
+    if(k=="temperature")st.temp=num(r[4]);
+    if(k=="humidity")st.hum=num(r[4]);
     var n=(r[0]||"").trim();
     if(!n||n.toLowerCase()=="horse")return;
     var x=(r[1]||"").trim().toLowerCase();
@@ -99,10 +98,10 @@ function load(rows){
   st.horses=hs;st.at=Date.now();
 }
 function render(){
-  var hz=$("heat"),live=st.wAt&&Date.now()-st.wAt<2700000,t=live?st.wT:st.sT,h=live?st.wH:st.sH;
+  var hz=$("heat"),t=st.temp,h=st.hum;
   if(t==null||h==null){hz.style.setProperty("--hc","var(--hn)");hz.innerHTML='<div class="lb">Equine Heat Index</div><div class="num">&ndash;</div><div class="st">Not set</div>';}
-  else{var v=Math.round(t+h),l=level(v);hz.style.setProperty("--hc",l[1]);
-    hz.innerHTML='<div class="lb">Equine Heat Index</div><div class="num">'+v+'</div><div class="st">'+l[0]+'</div><div class="dt">'+Math.round(t)+'°F + '+Math.round(h)+'% humidity'+(live?'':' (sheet)')+'</div>'+cps(live);}
+  else{var v=t+h,l=level(v);hz.style.setProperty("--hc",l[1]);
+    hz.innerHTML='<div class="lb">Equine Heat Index</div><div class="num">'+v+'</div><div class="st">'+l[0]+'</div><div class="dt">'+t+'°F + '+h+'% humidity</div>';}
   $("sub").textContent=(st.horses.length?st.horses.length+" horses · ":"")+new Date().toLocaleDateString([], {weekday:"long",month:"long",day:"numeric"});
   var c=$("cols");c.innerHTML="";
   COLS.forEach(function(k){
@@ -120,20 +119,16 @@ function render(){
 function fit(){
   var ns=document.querySelectorAll(".names");
   if(window.innerWidth<window.innerHeight)return;
-  var fs=3.2,i;
-  for(i=0;i<14;i++){
+  var fs=3.8;
+  while(fs>1.6){
     var over=false;
     ns.forEach(function(n){n.style.setProperty("--fs",fs+"vh");if(n.scrollHeight>n.clientHeight+1)over=true});
-    if(!over)break;fs-=0.2;
+    if(!over)break;fs-=0.1;
   }
 }
-function wx(){
-  fetch(WX).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
-    st.wT=d.current.temperature_2m;st.wH=d.current.relative_humidity_2m;st.wAt=Date.now();
-    st.cp=[[7,"7 AM"],[13,"1 PM"],[18,"6 PM"]].map(function(p){
-      return{l:p[1],v:Math.round(d.hourly.temperature_2m[p[0]]+d.hourly.relative_humidity_2m[p[0]])}});
-    render();
-  }).catch(function(){render()});
+function tick(){
+  var d=new Date(),p=d.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}).split(/\s+/);
+  $("clock").innerHTML=p[0]+(p[1]?"<small>"+p[1]+"</small>":"");
 }
 function pull(){
   if(!CSV_URL){$("msg").textContent="Add the Google Sheet link to CSV_URL in the file.";return}
@@ -143,7 +138,7 @@ function pull(){
     .catch(function(){$("msg").textContent="Connection lost. Showing last update."});
 }
 window.addEventListener("resize",fit);
-render();wx();pull();setInterval(wx,900000);setInterval(pull,EVERY);setInterval(render,60000);
+tick();setInterval(tick,1000);render();pull();setInterval(pull,EVERY);setInterval(render,60000);
 })();
 </script>
 </body>
