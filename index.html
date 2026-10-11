@@ -64,13 +64,16 @@ footer{min-height:2.6vh;display:flex;justify-content:space-between;align-items:c
 var CSV_URL="https://docs.google.com/spreadsheets/d/1_X_VX9J7TBwBCJ5LevxgVY7_BgvznSg59j_4pLXBZMs/gviz/tq?tqx=out:csv&sheet=Horses&headers=0";
 var EVERY=30000; // refresh every 30 seconds
 var st={horses:[],temp:null,hum:null,at:null};
+// Live weather from Open-Meteo (Kualoa Ranch area). Falls back to the sheet cells if it cannot load.
+var WX="https://api.open-meteo.com/v1/forecast?latitude=21.52199&longitude=-157.8353&current=temperature_2m,relative_humidity_2m&daily=temperature_2m_max&temperature_unit=fahrenheit&timezone=Pacific%2FHonolulu&forecast_days=1";
+var wx={t:null,h:null,hi:null};
 var $=function(i){return document.getElementById(i)};
 var COLS=[["trail","On Trail Rides","var(--trail)"],["guide","Guide Horses","var(--guide)"],["off","Day Off","var(--off)"]];
 function level(v){
-  if(v<120)return["Normal","var(--h0)"];
-  if(v<150)return["Monitor","var(--h1)"];
-  if(v<180)return["Caution: lighter workloads","var(--h2)"];
-  return["High: limit work","var(--h3)"];
+  if(v<155)return["Low","var(--h0)"];
+  if(v<=165)return["Moderate","var(--h1)"];
+  if(v<=175)return["High","var(--h2)"];
+  return["Extreme","var(--h3)"];
 }
 function parse(t){
   var rows=[],r=[],c="",q=false,i,ch;
@@ -99,10 +102,10 @@ function load(rows){
   st.horses=hs;st.at=Date.now();
 }
 function render(){
-  var hz=$("heat"),t=st.temp,h=st.hum;
+  var hz=$("heat"),t=wx.t!=null?wx.t:st.temp,h=wx.h!=null?wx.h:st.hum;
   if(t==null||h==null){hz.style.setProperty("--hc","var(--hn)");hz.innerHTML='<div class="lb">Equine Heat Index</div><div class="num">&ndash;</div><div class="st">Not set</div>';}
-  else{var v=t+h,l=level(v);hz.style.setProperty("--hc",l[1]);
-    hz.innerHTML='<div class="lb">Equine Heat Index</div><div class="num">'+v+'</div><div class="st">'+l[0]+'</div><div class="dt">'+t+'°F + '+h+'% humidity</div>';}
+  else{var v=Math.round(t+h),l=level(v);hz.style.setProperty("--hc",l[1]);
+    hz.innerHTML='<div class="lb">Equine Heat Index</div><div class="num">'+v+'</div><div class="st">'+l[0]+'</div><div class="dt">'+Math.round(t)+'°F · '+Math.round(h)+'% humidity'+(wx.hi!=null?' · High '+Math.round(wx.hi)+'°F':'')+'</div>';}
   $("sub").textContent=(st.horses.length?st.horses.length+" horses · ":"")+new Date().toLocaleDateString([], {weekday:"long",month:"long",day:"numeric"});
   var c=$("cols");c.innerHTML="";
   var cnt={trail:0,guide:0,off:0};st.horses.forEach(function(x){cnt[x.s]++});
@@ -140,8 +143,14 @@ function pull(){
     .then(function(t){load(parse(t));$("msg").textContent="";render()})
     .catch(function(){$("msg").textContent="Connection lost. Showing last update."});
 }
+function pullWx(){
+  fetch(WX).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
+    wx.t=+d.current.temperature_2m;wx.h=+d.current.relative_humidity_2m;
+    wx.hi=d.daily&&d.daily.temperature_2m_max?+d.daily.temperature_2m_max[0]:null;render();
+  }).catch(function(){});
+}
 window.addEventListener("resize",fit);
-tick();setInterval(tick,1000);render();pull();setInterval(pull,EVERY);setInterval(render,60000);
+tick();setInterval(tick,1000);render();pull();pullWx();setInterval(pull,EVERY);setInterval(pullWx,900000);setInterval(render,60000);
 })();
 </script>
 </body>
