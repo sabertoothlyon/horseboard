@@ -16,15 +16,18 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:"Nunito","Varela Round","Trebuchet MS","Segoe UI",system-ui,-apple-system,Helvetica,Arial,sans-serif}
 #app{display:flex;flex-direction:column;height:100vh;padding:2.5vh 2vw 1.5vh;gap:2vh;overflow:hidden}
 header{display:flex;justify-content:space-between;align-items:center;gap:2vw}
-.clock{flex:1;text-align:center;font-size:11vh;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.clock{flex:1;text-align:center;font-size:9.5vh;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.01em}
 .clock small{font-size:.38em;font-weight:700;color:var(--mute);margin-left:.15em}
 h1{margin:0;font-size:5.5vh;font-weight:600;letter-spacing:.01em}
 #sub{margin:.3em 0 0;color:var(--mute);font-size:2.6vh}
-.heat{background:var(--card);border:1px solid var(--line);border-left:.5vw solid var(--hc,var(--hn));border-radius:14px;padding:1vh 1.6vw;text-align:right;min-width:16vw}
-.heat .lb{font-size:1.8vh;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
-.heat .num{font-size:8vh;font-weight:700;line-height:1.05;color:var(--hc,var(--hn))}
-.heat .st{font-size:2.8vh;font-weight:600}
-.heat .dt{font-size:1.9vh;color:var(--mute)}
+.heat{background:var(--card);border:1px solid var(--line);border-left:.5vw solid var(--hc,var(--hn));border-radius:14px;padding:.8vh 1.1vw;text-align:right;min-width:11.5vw}
+.heats{display:flex;flex-direction:column;align-items:flex-end;gap:.6vh}
+.hcap{font-size:1.8vh;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
+.hrow{display:flex;gap:1vw}
+.heat .lb{font-size:2.2vh;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.08em}
+.heat .num{font-size:7vh;font-weight:700;line-height:1.05;color:var(--hc,var(--hn))}
+.heat .st{font-size:2.6vh;font-weight:600}
+.heat .dt{font-size:1.8vh;color:var(--mute)}
 .cols{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:1.2vw;flex:1;min-height:0}
 .col{display:flex;flex-direction:column;min-height:0;background:var(--card);border:1px solid var(--line);border-top:.5vh solid var(--cc);border-radius:14px;padding:1.4vh 1.2vw}
 .col h2 span{white-space:nowrap}
@@ -57,7 +60,7 @@ footer{min-height:2.6vh;display:flex;justify-content:space-between;align-items:c
   <header>
     <div><h1>Horse Board</h1><p id="sub"></p></div>
     <div class="clock" id="clock"></div>
-    <div class="heat" id="heat"></div>
+    <div class="heats" id="heat"></div>
   </header>
   <section class="cols" id="cols"></section>
   <footer><span id="upd"></span><span id="msg"></span></footer>
@@ -69,11 +72,11 @@ var CSV_URL="https://docs.google.com/spreadsheets/d/1_X_VX9J7TBwBCJ5LevxgVY7_Bgv
 var EVERY=30000; // refresh every 30 seconds
 var st={horses:[],temp:null,hum:null,at:null};
 // Live weather from Open-Meteo (Kualoa Ranch area). Falls back to the sheet cells if it cannot load.
-var WX="https://api.open-meteo.com/v1/forecast?latitude=21.52199&longitude=-157.8353&current=temperature_2m,relative_humidity_2m&daily=temperature_2m_max&temperature_unit=fahrenheit&timezone=Pacific%2FHonolulu&forecast_days=1";
-var wx={t:null,h:null,hi:null};
+var LOCS=[{name:"Kaʻaʻawa",lat:21.539028,lon:-157.841806,t:null,h:null},{name:"Kualoa",lat:21.519917,lon:-157.839583,t:null,h:null}];
+var WX="https://api.open-meteo.com/v1/forecast?latitude="+LOCS.map(function(l){return l.lat}).join(",")+"&longitude="+LOCS.map(function(l){return l.lon}).join(",")+"&current=temperature_2m,relative_humidity_2m&temperature_unit=fahrenheit&timezone=Pacific%2FHonolulu";
 var $=function(i){return document.getElementById(i)};
-var COLS=[["work","On Trail Rides","var(--trail)"],["off","Day Off","var(--off)"]];
-var KIND={guide:["Guides","var(--guide)",0],h1:["1 Hour","var(--y1)",1],h2:["2 Hour","var(--y2)",2],trail:["Trail","var(--trail)",3]};
+var COLS=[["work","On the Line","var(--trail)"],["off","Day Off","var(--off)"]];
+var KIND={guide:["Guides","var(--guide)",0],h1:["1 Hour","var(--y1)",1],h2:["2 Hour","var(--trail)",2],trail:["Line","var(--trail)",2]};
 function level(v){
   if(v<155)return["Low","var(--h0)"];
   if(v<=165)return["Moderate","var(--h1)"];
@@ -102,15 +105,20 @@ function load(rows){
     var n=(r[0]||"").trim();
     if(!n||n.toLowerCase()=="horse")return;
     var x=(r[1]||"").trim().toLowerCase();
-    hs.push({n:n,s:x[0]=="g"?"guide":x.indexOf("1")>-1?"h1":x.indexOf("2")>-1?"h2":x[0]=="t"?"trail":"off"});
+    hs.push({n:n,s:x[0]=="g"?"guide":x.indexOf("1")>-1?"h1":x.indexOf("2")>-1?"h2":(x[0]=="t"||x[0]=="l")?"trail":"off"});
   });
   st.horses=hs;st.at=Date.now();
 }
 function render(){
-  var hz=$("heat"),t=wx.t!=null?wx.t:st.temp,h=wx.h!=null?wx.h:st.hum;
-  if(t==null||h==null){hz.style.setProperty("--hc","var(--hn)");hz.innerHTML='<div class="lb">Equine Heat Index</div><div class="num">&ndash;</div><div class="st">Not set</div>';}
-  else{var v=Math.round(t+h),l=level(v);hz.style.setProperty("--hc",l[1]);
-    hz.innerHTML='<div class="lb">Equine Heat Index</div><div class="num">'+v+'</div><div class="st">'+l[0]+'</div><div class="dt">'+Math.round(t)+'°F · '+Math.round(h)+'% humidity'+(wx.hi!=null?' · High '+Math.round(wx.hi)+'°F':'')+'</div>';}
+  var hz=$("heat");
+  hz.innerHTML='<div class="hcap">Equine Heat Index</div><div class="hrow"></div>';
+  LOCS.forEach(function(L){
+    var t=L.t!=null?L.t:st.temp,h=L.h!=null?L.h:st.hum,el=document.createElement("div");el.className="heat";
+    if(t==null||h==null){el.style.setProperty("--hc","var(--hn)");el.innerHTML='<div class="lb">'+L.name+'</div><div class="num">&ndash;</div><div class="st">Not set</div>';}
+    else{var v=Math.round(t+h),l=level(v);el.style.setProperty("--hc",l[1]);
+      el.innerHTML='<div class="lb">'+L.name+'</div><div class="num">'+v+'</div><div class="st">'+l[0]+'</div><div class="dt">'+Math.round(t)+'°F · '+Math.round(h)+'% humidity</div>';}
+    hz.lastChild.appendChild(el);
+  });
   $("sub").textContent=(st.horses.length?st.horses.length+" horses · ":"")+new Date().toLocaleDateString([], {weekday:"long",month:"long",day:"numeric"});
   var c=$("cols");c.innerHTML="";
   var cnt={trail:0,guide:0,h1:0,h2:0,off:0};st.horses.forEach(function(x){cnt[x.s]++});
@@ -125,12 +133,12 @@ function render(){
     var h2=document.createElement("h2");h2.innerHTML="<span>"+k[1]+"</span><b>"+list.length+"</b>";col.appendChild(h2);
     if(k[0]==="work"){
       var lg=document.createElement("div");lg.className="lg";
-      ["guide","h1","h2","trail"].forEach(function(t){lg.innerHTML+='<span><i style="background:'+KIND[t][1]+'"></i>'+KIND[t][0]+' <b>'+cnt[t]+'</b></span>'});
+      [["guide","Guides",cnt.guide],["h1","1 Hour",cnt.h1],["trail","2 Hour / Line",cnt.trail+cnt.h2]].forEach(function(t){lg.innerHTML+='<span><i style="background:'+KIND[t[0]][1]+'"></i>'+t[1]+' <b>'+t[2]+'</b></span>'});
       col.appendChild(lg);
     }
     var box=document.createElement("div");box.className="names";
     if(!list.length){var e=document.createElement("div");e.className="empty";e.textContent="None right now";box.appendChild(e)}
-    list.forEach(function(x){var el=document.createElement("span");el.className="n"+(x.s==="guide"||x.s==="h1"||x.s==="h2"?" k":"");
+    list.forEach(function(x){var el=document.createElement("span");el.className="n"+(x.s==="guide"||x.s==="h1"?" k":"");
       if(KIND[x.s])el.style.setProperty("--pc",KIND[x.s][1]);el.textContent=x.n;box.appendChild(el)});
     col.appendChild(box);c.appendChild(col);
   });
@@ -160,8 +168,9 @@ function pull(){
 }
 function pullWx(){
   fetch(WX).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
-    wx.t=+d.current.temperature_2m;wx.h=+d.current.relative_humidity_2m;
-    wx.hi=d.daily&&d.daily.temperature_2m_max?+d.daily.temperature_2m_max[0]:null;render();
+    if(!Array.isArray(d))d=[d];
+    LOCS.forEach(function(L,i){if(d[i]&&d[i].current){L.t=+d[i].current.temperature_2m;L.h=+d[i].current.relative_humidity_2m}});
+    render();
   }).catch(function(){});
 }
 window.addEventListener("resize",fit);
